@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# batch-rename — Batch file renaming with validation, collision detection, and audit trail.
+#
+# See `batch-rename --help` for usage.
+
+set -euo pipefail
+
+readonly VERSION="1.0.0"
+readonly PROGNAME="$(basename "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=lib/rename.sh
+source "${SCRIPT_DIR}/lib/rename.sh"
+
+# ── usage ─────────────────────────────────────────────────────────────
+
+usage() {
+    cat <<EOF
+Usage: ${PROGNAME} [OPTIONS] -f <file-list> -m <name-map> [-s <source-dir>] [-o <output-dir>]
+
+Batch rename files using a parallel mapping between source filenames
+and target names, with collision detection and optional audit trail.
+
+Required:
+  -f, --files FILE        File listing source filenames (one per line)
+  -m, --map FILE          File listing target names (one per line, same order)
+
+Options:
+  -s, --source DIR        Directory containing source files (default: ./)
+  -o, --output DIR        Output directory for renamed copies (default: ./output)
+  -e, --ext EXT           Override output extension (e.g., pdf, txt)
+  -p, --preserve-ext      Preserve original file extension
+  -F, --force             Overwrite existing files in output directory
+  -n, --dry-run           Show rename plan without executing
+  -l, --log FILE          Write logs to file
+  -q, --quiet             Suppress terminal output
+  -v, --verbose           Enable debug-level logging
+  -h, --help              Show this help message
+  -V, --version           Print version
+
+Examples:
+  ${PROGNAME} -f files.txt -m names.txt -o ./renamed
+  ${PROGNAME} -f files.txt -m names.txt -e pdf --dry-run
+  ${PROGNAME} -f files.txt -m names.txt -s ./downloads -o ./final --force
+
+EOF
+}
+
+# ── argument parsing ──────────────────────────────────────────────────
+
+parse_args() {
+    local file_list=""
+    local name_map=""
+    local source_dir="./"
+    local output_dir="./output"
+    local target_ext=""
+    local preserve_ext=0
+    local force=0
+    local dry_run=0
+    local log_file=""
+    local quiet=0
+    local verbose=0
+
+    while (( $# > 0 )); do
+        case "$1" in
+            -f|--files)        file_list="$2";  shift 2 ;;
+            -m|--map)          name_map="$2";   shift 2 ;;
+            -s|--source)       source_dir="$2"; shift 2 ;;
+            -o|--output)       output_dir="$2"; shift 2 ;;
+            -e|--ext)          target_ext="$2"; shift 2 ;;
+            -p|--preserve-ext) preserve_ext=1;  shift ;;
+            -F|--force)        force=1;         shift ;;
+            -n|--dry-run)      dry_run=1;       shift ;;
+            -l|--log)          log_file="$2";   shift 2 ;;
+            -q|--quiet)        quiet=1;         shift ;;
+            -v|--verbose)      verbose=1;       shift ;;
+            -h|--help)         usage; exit 0 ;;
+            -V|--version)      echo "${PROGNAME} ${VERSION}"; exit 0 ;;
+            -*)
+                echo "error: unknown option: $1" >&2
+                echo "Try '${PROGNAME} --help' for usage." >&2
+                exit 1
+                ;;
+            *)
+                echo "error: unexpected argument: $1" >&2
+                echo "Try '${PROGNAME} --help' for usage." >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    if [[ -z "$file_list" ]]; then
+        echo "error: --files is required" >&2
+        echo "Try '${PROGNAME} --help' for usage." >&2
+        exit 1
+    fi
+
+    if [[ -z "$name_map" ]]; then
+        echo "error: --map is required" >&2
+        echo "Try '${PROGNAME} --help' for usage." >&2
+        exit 1
+    fi
+
+    # Apply configuration
+    [[ -n "$log_file" ]]   && log_init "$log_file"
+    (( verbose ))          && log_set_level debug
+    (( quiet ))            && log_set_quiet
+    (( dry_run ))          && rn_set_dry_run
+    (( force ))            && rn_set_force
+    (( preserve_ext ))     && rn_set_preserve_ext
+    [[ -n "$target_ext" ]] && rn_set_target_ext "$target_ext"
+
+    # Run
+    rn_batch "$file_list" "$name_map" "$source_dir" "$output_dir"
+}
+
+# ── signal handling ───────────────────────────────────────────────────
+
+cleanup() {
+    log_warn "interrupted — check output directory for partial results"
+    exit 130
+}
+
+trap cleanup INT TERM
+
+# ── main ──────────────────────────────────────────────────────────────
+
+main() {
+    parse_args "$@"
+}
+
+main "$@"

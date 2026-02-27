@@ -1,0 +1,9 @@
+# Example checksum file for download verification.
+# Format matches sha256sum output: <hash>  <filename>
+#
+# Generate with: sha256sum *.pdf > checksums.sha256
+#
+# Usage: ./batch-dl -i urls.txt -o ./downloads -c checksums.sha256
+
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  quarterly-2024-q1.pdf
+a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2  quarterly-2024-q2.pdf

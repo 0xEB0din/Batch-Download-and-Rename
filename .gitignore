@@ -1,0 +1,30 @@
+# ── Output & downloads ────────────────────────────────────────────────
+downloads/
+output/
+*.partial
+
+# ── Logs ──────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── User data files ──────────────────────────────────────────────────
+# Keep examples/ but ignore user-created input files in the root
+urls.txt
+files.txt
+fileslist.txt
+filenames.txt
+checksums.sha256
+
+# ── OS artifacts ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# ── IDE / editor ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Config (user-specific) ───────────────────────────────────────────
+config/batch-dl.conf
