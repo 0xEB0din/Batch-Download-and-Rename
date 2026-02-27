@@ -1,0 +1,5 @@
+# shellcheck configuration
+shell=bash
+enable=all
+# SC2059: printf format string — we handle this intentionally in logging.sh
+disable=SC2059

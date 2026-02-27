@@ -1,0 +1,9 @@
+# Example target name list for batch-rename.
+# Each line maps to the corresponding line in filenames.txt.
+#
+# Usage: ./batch-rename -f examples/filenames.txt -m examples/names.txt -s ./downloads
+
+Q1 2024 Financial Report
+Q2 2024 Financial Report
+Q3 2024 Financial Report
+Q4 2024 Financial Report

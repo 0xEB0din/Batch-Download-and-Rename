@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# batch-dl — Batch file downloader with retry, checksum verification, and logging.
+#
+# See `batch-dl --help` for usage.
+
+set -euo pipefail
+
+readonly VERSION="1.0.0"
+readonly PROGNAME="$(basename "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=lib/download.sh
+source "${SCRIPT_DIR}/lib/download.sh"
+
+# ── usage ─────────────────────────────────────────────────────────────
+
+usage() {
+    cat <<EOF
+Usage: ${PROGNAME} [OPTIONS] -i <url-list> [-o <output-dir>]
+
+Batch download files from a list of URLs with retry logic,
+optional checksum verification, and structured logging.
+
+Required:
+  -i, --input FILE        File containing one URL per line
+
+Options:
+  -o, --output DIR        Output directory (default: ./downloads)
+  -c, --checksums FILE    SHA-256 checksum file for verification
+  -r, --retries N         Max retry attempts per file (default: 3)
+  -t, --timeout N         Read timeout in seconds (default: 30)
+  -d, --delay N           Initial retry delay in seconds (default: 2)
+  -l, --log FILE          Write logs to file
+  -n, --dry-run           Show what would be downloaded without downloading
+  -k, --insecure          Skip TLS certificate verification (NOT recommended)
+  -q, --quiet             Suppress terminal output (logs still written if -l set)
+  -v, --verbose           Enable debug-level logging
+  -h, --help              Show this help message
+  -V, --version           Print version
+
+Examples:
+  ${PROGNAME} -i urls.txt
+  ${PROGNAME} -i urls.txt -o ./files -c checksums.sha256
+  ${PROGNAME} -i urls.txt -n --verbose
+  ${PROGNAME} -i urls.txt -r 5 -t 60 -l download.log
+
+EOF
+}
+
+# ── argument parsing ──────────────────────────────────────────────────
+
+parse_args() {
+    local input_file=""
+    local output_dir="./downloads"
+    local checksum_file=""
+    local log_file=""
+    local retries=3
+    local timeout=30
+    local delay=2
+    local dry_run=0
+    local insecure=0
+    local quiet=0
+    local verbose=0
+
+    while (( $# > 0 )); do
+        case "$1" in
+            -i|--input)      input_file="$2";   shift 2 ;;
+            -o|--output)     output_dir="$2";   shift 2 ;;
+            -c|--checksums)  checksum_file="$2"; shift 2 ;;
+            -r|--retries)    retries="$2";      shift 2 ;;
+            -t|--timeout)    timeout="$2";      shift 2 ;;
+            -d|--delay)      delay="$2";        shift 2 ;;
+            -l|--log)        log_file="$2";     shift 2 ;;
+            -n|--dry-run)    dry_run=1;         shift ;;
+            -k|--insecure)   insecure=1;        shift ;;
+            -q|--quiet)      quiet=1;           shift ;;
+            -v|--verbose)    verbose=1;         shift ;;
+            -h|--help)       usage; exit 0 ;;
+            -V|--version)    echo "${PROGNAME} ${VERSION}"; exit 0 ;;
+            -*)
+                echo "error: unknown option: $1" >&2
+                echo "Try '${PROGNAME} --help' for usage." >&2
+                exit 1
+                ;;
+            *)
+                echo "error: unexpected argument: $1" >&2
+                echo "Try '${PROGNAME} --help' for usage." >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    if [[ -z "$input_file" ]]; then
+        echo "error: --input is required" >&2
+        echo "Try '${PROGNAME} --help' for usage." >&2
+        exit 1
+    fi
+
+    # Apply configuration
+    [[ -n "$log_file" ]]  && log_init "$log_file"
+    (( verbose ))         && log_set_level debug
+    (( quiet ))           && log_set_quiet
+    (( dry_run ))         && dl_set_dry_run
+    (( insecure ))        && dl_set_skip_cert
+
+    dl_set_retries "$retries"
+    dl_set_read_timeout "$timeout"
+    dl_set_retry_delay "$delay"
+
+    # Run
+    dl_batch "$input_file" "$output_dir" "$checksum_file"
+}
+
+# ── signal handling ───────────────────────────────────────────────────
+
+cleanup() {
+    log_warn "interrupted — partial downloads may remain in output directory"
+    exit 130
+}
+
+trap cleanup INT TERM
+
+# ── main ──────────────────────────────────────────────────────────────
+
+main() {
+    parse_args "$@"
+}
+
+main "$@"

@@ -1,0 +1,34 @@
+# batch-dl.conf — Default configuration for batch-dl and batch-rename.
+#
+# Copy this file to ~/.config/batch-dl/batch-dl.conf or pass options
+# directly via CLI flags (CLI flags always take precedence).
+
+# ── Download settings ─────────────────────────────────────────────────
+
+# Maximum retry attempts per file (default: 3)
+# RETRIES=3
+
+# Initial retry delay in seconds, doubles on each attempt (default: 2)
+# RETRY_DELAY=2
+
+# Connection timeout in seconds (default: 10)
+# CONNECT_TIMEOUT=10
+
+# Read timeout in seconds (default: 30)
+# READ_TIMEOUT=30
+
+# Custom user-agent string
+# USER_AGENT="BatchDL/1.0"
+
+# ── Security settings ─────────────────────────────────────────────────
+
+# Skip TLS certificate verification (default: false, NOT recommended)
+# SKIP_CERT_VERIFY=false
+
+# ── Logging ───────────────────────────────────────────────────────────
+
+# Log file path (default: none, logs go to stdout/stderr only)
+# LOG_FILE=""
+
+# Log level: debug, info, warn, error (default: info)
+# LOG_LEVEL="info"
